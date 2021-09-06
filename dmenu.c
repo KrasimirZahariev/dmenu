@@ -608,46 +608,56 @@ keypress(XKeyEvent *ev)
       case XK_g: ksym = XK_Escape;    break;
       case XK_h: ksym = XK_BackSpace; break;
       case XK_i: ksym = XK_Tab;       break;
+      case XK_j: ksym = XK_Down;      break;
+      case XK_k: ksym = XK_Up;        break;
       case XK_J: /* fallthrough */
       case XK_m: /* fallthrough */
       case XK_M: ksym = XK_Return; ev->state &= ~ControlMask; break;
       case XK_n: ksym = XK_Down;      break;
       case XK_p: ksym = XK_Up;        break;
 
-      case XK_j:
-                 navhistory(1);
-                 buf[0]=0;
-                 break;
-      case XK_k:
-                 navhistory(-1);
-                 buf[0]=0;
-                 break;
+      /* case XK_j: */
+      /*            navhistory(1); */
+      /*            buf[0]=0; */
+      /*            break; */
+      /* case XK_k: */
+      /*            navhistory(-1); */
+      /*            buf[0]=0; */
+      /*            break; */
+
       case XK_u: /* delete left */
                  insert(NULL, 0 - cursor);
                  break;
+
+      case XK_v: /* paste selection */
+      case XK_V:
+                 XConvertSelection(dpy, (ev->state & ShiftMask) ? clip : XA_PRIMARY,
+                     utf8, utf8, win, CurrentTime);
+                 return;
+
       case XK_w: /* delete word */
                  while (cursor > 0 && strchr(worddelimiters, text[nextrune(-1)]))
                    insert(NULL, nextrune(-1) - cursor);
                  while (cursor > 0 && !strchr(worddelimiters, text[nextrune(-1)]))
                    insert(NULL, nextrune(-1) - cursor);
                  break;
-      case XK_y: /* paste selection */
-      case XK_Y:
-                 XConvertSelection(dpy, (ev->state & ShiftMask) ? clip : XA_PRIMARY,
-                     utf8, utf8, win, CurrentTime);
-                 return;
+
       case XK_Left:
                  movewordedge(-1);
                  goto draw;
+
       case XK_Right:
                  movewordedge(+1);
                  goto draw;
+
       case XK_Return:
       case XK_KP_Enter:
                  break;
+
       case XK_bracketleft:
                  cleanup();
                  exit(1);
+
       default:
                  return;
     }
