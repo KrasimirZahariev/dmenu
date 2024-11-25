@@ -41,7 +41,7 @@ struct item {
 static char text[BUFSIZ] = "";
 static char *embed;
 static int bh, mw, mh;
-static int inputw = 0, promptw;
+static int inputw = 0, promptw, passwd = 0;
 static int lrpad; /* sum of left and right padding */
 static size_t cursor;
 static struct item *items = NULL;
@@ -191,6 +191,7 @@ drawmenu(void)
   unsigned int curpos;
   struct item *item;
   int x = 0, y = 0, fh = drw->fonts->h, w;
+  char *censort;
 
   drw_setscheme(drw, scheme[SchemeNorm]);
   drw_rect(drw, 0, 0, mw, mh, 1, 1);
@@ -201,8 +202,15 @@ drawmenu(void)
   }
   /* draw input field */
   w = (lines > 0 || !matches) ? mw - x : inputw;
-  drw_setscheme(drw, scheme[SchemeNorm]);
-  drw_text(drw, x, 0, w, bh, lrpad / 2, text, 0);
+  /* drw_setscheme(drw, scheme[SchemeNorm]); */
+  if (passwd) {
+    censort = ecalloc(1, sizeof(text));
+    memset(censort, '.', strlen(text));
+    drw_text(drw, x, 0, w, bh, lrpad / 2, censort, 0);
+    free(censort);
+  } else {
+    drw_text(drw, x, 0, w, bh, lrpad / 2, text, 0);
+  }
 
   curpos = TEXTW(text) - TEXTW(&text[cursor]);
   if ((curpos += lrpad / 2 - 1) < w) {
@@ -616,14 +624,14 @@ keypress(XKeyEvent *ev)
       case XK_n: ksym = XK_Down;      break;
       case XK_p: ksym = XK_Up;        break;
 
-      /* case XK_j: */
-      /*            navhistory(1); */
-      /*            buf[0]=0; */
-      /*            break; */
-      /* case XK_k: */
-      /*            navhistory(-1); */
-      /*            buf[0]=0; */
-      /*            break; */
+                 /* case XK_j: */
+                 /*            navhistory(1); */
+                 /*            buf[0]=0; */
+                 /*            break; */
+                 /* case XK_k: */
+                 /*            navhistory(-1); */
+                 /*            buf[0]=0; */
+                 /*            break; */
 
       case XK_u: /* delete left */
                  insert(NULL, 0 - cursor);
@@ -676,7 +684,7 @@ keypress(XKeyEvent *ev)
       case XK_k: ksym = XK_Prior; break;
       case XK_l: ksym = XK_Down;  break;
       default:
-        return;
+                 return;
     }
   }
 
@@ -812,6 +820,11 @@ readstdin(void)
   char buf[sizeof text], *p;
   size_t i, imax = 0, size = 0;
   unsigned int tmpmax = 0;
+
+  if(passwd){
+    inputw = lines = 0;
+    return;
+  }
 
   /* read each line from stdin and add it to the item list */
   for (i = 0; fgets(buf, sizeof buf, stdin); i++) {
@@ -994,7 +1007,7 @@ setup(void)
   static void
 usage(void)
 {
-  fputs("usage: dmenu [-bfiv] [-l lines] [-h height] [-p prompt] [-fn font] [-m monitor]\n"
+  fputs("usage: dmenu [-bfivP] [-l lines] [-h height] [-p prompt] [-fn font] [-m monitor]\n"
       "             [-nb color] [-nf color] [-sb color] [-sf color]\n"
       "             [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]\n"
       "             [-H histfile]", stderr);
@@ -1023,11 +1036,13 @@ main(int argc, char *argv[])
     else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
       fstrncmp = strncasecmp;
       fstrstr = cistrstr;
-    } else if (i + 1 == argc)
+    } else if (!strcmp(argv[i], "-P"))   /* is the input a password */
+      passwd = 1;
+    else if (i + 1 == argc)
       usage();
-  /* these options take one argument */
-		else if (!strcmp(argv[i], "-H"))
-			histfile = argv[++i];
+    /* these options take one argument */
+    else if (!strcmp(argv[i], "-H"))
+      histfile = argv[++i];
     else if (!strcmp(argv[i], "-g")) {   /* number of columns in grid */
       columns = atoi(argv[++i]);
       if (lines == 0) lines = 1;
